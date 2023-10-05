@@ -1,0 +1,33 @@
+import random
+
+#Генерирует случайные четыре цифры
+numbers = [str(x) for x in range(10)]
+random.shuffle(numbers)
+hidden_num = ''.join(numbers[:4])
+print(hidden_num)
+
+while True:
+    
+    bulls = 0
+    cows = 0
+    
+    #Ввод числа пользователем и корректность ввода
+    while True:
+        user_num = input('Введите свое число(4 уникальные цифры): ')
+        if len(user_num) == 4 and user_num.isdigit() and len(user_num) == len(set(user_num)):
+            break
+        else:
+            print('Число должно состоять из 4 уникальных цифр и не содержать букв!')
+    
+    if hidden_num == user_num:
+        print('Игра завершена!\nИгрок победил!')
+        break
+        
+    #Подсчет коров и быков
+    for i_num in range(4):
+        if hidden_num[i_num] == user_num[i_num]:
+            bulls += 1
+        elif user_num[i_num] in hidden_num:
+            cows += 1
+    print(f'Количество быков - {bulls}\nКоличество коров - {cows}\n')
+       
