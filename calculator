@@ -1,0 +1,238 @@
+import calc_dicts
+
+
+#Функция, проверяющая корректность числа
+def validate_number(str_num: str):
+
+    if str_num in calc_dicts.one_word_numbers:
+        return calc_dicts.one_word_numbers[str_num]
+    str_num_list = str_num.split()
+
+    int_num = ''
+    num = '0'
+    fraction_num = ''
+
+    if str_num_list[0] == 'минус':
+        int_num += '-'
+        str_num_list = str_num_list[1:]
+
+    level_num = 0
+    dot_flag = False
+    zero_flag = False
+    for i_elem in str_num_list:
+
+        if (level_num == 1 and i_elem != 'и' and i_elem not in calc_dicts.fraction_dict) \
+                or level_num == -2:
+            return False
+
+        elif int(num) == 0 and i_elem in calc_dicts.one_word_numbers:
+            num = str(int(calc_dicts.one_word_numbers[i_elem]))
+            level_num = 1
+
+        elif i_elem == 'и':
+            if level_num == 0 or dot_flag:
+                return False
+            else:
+                num += '.'
+                int_num += num
+                num = '0'
+                level_num = -1
+                dot_flag = True
+
+        elif (i_elem in calc_dicts.first_level or i_elem == 'одна') and level_num in (0, 2, -1):
+            if i_elem == 'одна':
+                if dot_flag:
+                    num = str(1 + int(num))
+                else:
+                    return False
+            else:
+                num = str(int(calc_dicts.first_level[i_elem]) + int(num))
+                level_num = 1
+
+        elif i_elem in calc_dicts.second_level and level_num in (-1, 0):
+            num = str(int(calc_dicts.second_level[i_elem]) + int(num))
+            level_num = 2
+
+        elif i_elem in calc_dicts.fraction_dict:
+            if dot_flag and calc_dicts.fraction_level[i_elem] >= len(num):
+                num = str(int(num) * calc_dicts.fraction_dict[i_elem])[2:]
+                level_num = -2
+            else:
+                return False
+        else:
+            return False
+
+    return int_num + num
+
+
+def parse_string(answer):
+    answer_list = answer.split()
+    nums_and_signs = ''
+    bracket_flag = False
+    multi_flag = False
+    div_flag = False
+    minus_flag = False
+    start_string = True
+    sign_flag = False
+
+    num = ''
+
+    for i_elem in answer_list:
+
+        if bracket_flag:
+            if i_elem in calc_dicts.brackets_dict:
+                nums_and_signs += calc_dicts.brackets_dict[i_elem]
+                bracket_flag = False
+            else:
+                return False
+
+        elif (start_string or not sign_flag) and i_elem == 'скобка':
+            if len(num) != 0:
+                val_num = validate_number(num)
+                if val_num:
+                    nums_and_signs += val_num
+                    num = ''
+                else:
+                    return False
+            bracket_flag = True
+
+        elif i_elem == 'минус':
+            if not sign_flag:
+                if len(num) != 0:
+                    val_num = validate_number(num)
+                    if val_num:
+                        nums_and_signs += val_num
+                        num = ''
+                    else:
+                        return False
+                nums_and_signs += calc_dicts.signs_dict[i_elem]
+                sign_flag = True
+
+            elif not minus_flag:
+                num += '-'
+                minus_flag = True
+            else:
+                return False
+
+        elif i_elem == 'умножить':
+            if multi_flag:
+                return False
+            else:
+                multi_flag = True
+
+        elif i_elem in ['делить', 'разделить']:
+            if div_flag:
+                return False
+            else:
+                div_flag = True
+
+        elif i_elem == 'на':
+            if multi_flag:
+                sign_flag = True
+                multi_flag = False
+
+                if len(num) != 0:
+                    val_num = validate_number(num)
+                    if val_num:
+                        nums_and_signs += val_num
+
+                        num = ''
+                    else:
+                        return False
+                nums_and_signs += calc_dicts.signs_dict[i_elem]
+
+            elif div_flag:
+                if div_flag:
+                    sign_flag = True
+                    div_flag = False
+
+                    if len(num) != 0:
+                        val_num = validate_number(num)
+                        if val_num:
+                            nums_and_signs += val_num
+
+                            num = ''
+                        else:
+                            return False
+                    nums_and_signs += '/'
+
+                else:
+                    return False
+            else:
+                return False
+
+        elif i_elem in calc_dicts.signs_dict:
+            if sign_flag:
+                return False
+            else:
+                sign_flag = True
+                if len(num) != 0:
+                    val_num = validate_number(num)
+                    if val_num:
+                        nums_and_signs += val_num
+                        num = ''
+                    else:
+                        return False
+                nums_and_signs += calc_dicts.signs_dict[i_elem]
+
+        else:
+            start_string = False
+            sign_flag = False
+            minus_flag = False
+            num += ' ' + i_elem
+
+    val_num = validate_number(num)
+    if val_num:
+        nums_and_signs += val_num
+    else:
+        return False
+
+    return nums_and_signs
+
+
+def number_to_string(number):
+    number = round(number, 2)
+    if number in calc_dicts.reverse_numbers:
+        return calc_dicts.reverse_numbers[number]
+    str_num = ''
+    minus = ''
+    if number < 0:
+        minus = 'минус '
+        number = -number
+    i = 1
+    num_list = str(number).split('.')
+    number = int(num_list[0])
+    while number > 0:
+        digit = number % (10 ** i)
+
+        if digit != 0:
+            str_num = calc_dicts.reverse_numbers[digit] + ' ' + str_num
+        number -= digit
+
+        i += 1
+    if len(num_list) == 2:
+        fraction_num = 'и '
+        fraction = num_list[1]
+        i = len(fraction) - 1
+        while len(fraction) > 0:
+            if int(fraction[0]) != 0:
+                fraction_num += calc_dicts.reverse_numbers[int(fraction[0]) * 10 ** i] + ' '
+            fraction = fraction[1:]
+            i -= 1
+
+        return minus + str_num + fraction_num + calc_dicts.reverse_fraction_level[len(num_list[1])]
+
+    return minus + str_num
+
+
+def calc(answer):
+    str_for_eval = parse_string(answer)
+    try:
+        str_result = number_to_string(eval(str_for_eval))
+    except SyntaxError:
+        raise SyntaxError('Ошибка ввода')
+    return str_result
+
+
+
+print(calc('сорок один и тридцать одна сотая разделить на семнадцать'))
